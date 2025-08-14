@@ -8,4 +8,6 @@ pub mod camera;
 pub mod voice;
 #[cfg(feature = "web")]
 pub mod web;
-pub mod llm; 
+pub mod llm;
+#[cfg(all(feature = "stt-vosk", feature = "tts"))]
+pub mod voicechat; 

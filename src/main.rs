@@ -34,6 +34,9 @@ enum Commands {
 	/// Voice mode with wake word (requires --features tts,stt-vosk)
 	#[cfg(all(feature = "stt-vosk", feature = "tts"))]
 	Voice,
+	/// Continuous voice chat with silence detection (requires --features tts,stt-vosk)
+	#[cfg(all(feature = "stt-vosk", feature = "tts"))]
+	Voicechat,
 	/// Fetch a URL, summarize, and learn (requires --features web)
 	#[cfg(feature = "web")]
 	Browse { url: String },
@@ -67,6 +70,8 @@ async fn main() -> Result<()> {
 		}
 		#[cfg(all(feature = "stt-vosk", feature = "tts"))]
 		Commands::Voice => run_voice(settings).await?,
+		#[cfg(all(feature = "stt-vosk", feature = "tts"))]
+		Commands::Voicechat => modules::voicechat::run(settings).await?,
 		#[cfg(feature = "web")]
 		Commands::Browse { url } => run_browse(settings, &url).await?,
 		#[cfg(feature = "web")]

@@ -2,6 +2,21 @@
 
 Local-first AI assistant (Rust). Optional voice, web learning, and local LLM.
 
+## Voice conversation
+- Wake word: `milyai voice` (say “Milly”)
+- Continuous talk (auto stop on silence): `milyai voicechat`
+- Requires Vosk model path in config and TTS feature.
+
+```yaml
+stt_model_path: "C:/models/vosk-model-small-id-0.22"
+```
+
+Build:
+```bash
+cargo build --features "voice"         # wake word
+cargo build --features "stt-vosk tts"  # for voicechat
+```
+
 ## Local LLM (no API key)
 - Install Ollama: `https://ollama.com/download`
 - Pull a model (examples):
