@@ -10,12 +10,15 @@ pub struct Settings {
 	pub curiosity: Option<f32>,
 	pub llm_endpoint: Option<String>,
 	pub memory_path: Option<PathBuf>,
+	pub log_path: Option<PathBuf>,
 	#[cfg(feature = "stt-vosk")]
 	pub stt_model_path: Option<PathBuf>,
 	#[cfg(feature = "web")]
 	pub web_user_agent: Option<String>,
 	#[cfg(feature = "web")]
 	pub learn_urls: Option<Vec<String>>,
+	#[cfg(feature = "feeds")]
+	pub learn_feeds: Option<Vec<String>>,
 	#[cfg(feature = "web")]
 	pub learn_interval_secs: Option<u64>,
 	#[cfg(feature = "web")]
@@ -72,6 +75,7 @@ pub fn load(path: Option<&str>) -> Result<Settings> {
 	if let Ok(v) = env::var("MILYAI_PERSONA") { s.persona = Some(v); }
 	if let Ok(v) = env::var("MILYAI_CURIOSITY") { s.curiosity = v.parse().ok(); }
 	if let Ok(v) = env::var("MILYAI_LLM_ENDPOINT") { s.llm_endpoint = Some(v); }
+	if let Ok(v) = env::var("MILYAI_LOG_PATH") { s.log_path = Some(v.into()); }
 	#[cfg(feature = "web")]
 	if let Ok(v) = env::var("MILYAI_WEB_USER_AGENT") { s.web_user_agent = Some(v); }
 	#[cfg(feature = "web")]
@@ -116,12 +120,15 @@ fn merge(mut base: Settings, other: Settings) -> Settings {
 	if other.curiosity.is_some() { base.curiosity = other.curiosity; }
 	if other.llm_endpoint.is_some() { base.llm_endpoint = other.llm_endpoint; }
 	if other.memory_path.is_some() { base.memory_path = other.memory_path; }
+	if other.log_path.is_some() { base.log_path = other.log_path; }
 	#[cfg(feature = "stt-vosk")]
 	if other.stt_model_path.is_some() { base.stt_model_path = other.stt_model_path; }
 	#[cfg(feature = "web")]
 	if other.web_user_agent.is_some() { base.web_user_agent = other.web_user_agent; }
 	#[cfg(feature = "web")]
 	if other.learn_urls.is_some() { base.learn_urls = other.learn_urls; }
+	#[cfg(feature = "feeds")]
+	if other.learn_feeds.is_some() { base.learn_feeds = other.learn_feeds; }
 	#[cfg(feature = "web")]
 	if other.learn_interval_secs.is_some() { base.learn_interval_secs = other.learn_interval_secs; }
 	#[cfg(feature = "web")]

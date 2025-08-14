@@ -140,20 +140,31 @@ async fn run_browse(settings: settings::Settings, url: &str) -> Result<()> {
 async fn run_learn_daemon(settings: settings::Settings) -> Result<()> {
 	use tokio::time::{sleep, Duration};
 	let mut agent = agent::Agent::new(settings.clone())?;
-	let urls = match &settings.learn_urls { Some(v) if !v.is_empty() => v.clone(), _ => {
-		println!("No learn_urls configured in config.yaml");
+	let urls = settings.learn_urls.clone().unwrap_or_default();
+	let feeds = settings.learn_feeds.clone().unwrap_or_default();
+	if urls.is_empty() && feeds.is_empty() {
+		println!("No learn_sources configured in config.yaml");
 		return Ok(());
-	}};
+	}
 	let interval = settings.learn_interval_secs.unwrap_or(3600);
-	println!("Learn daemon started. {} URLs, every {}s. Ctrl+C to stop.", urls.len(), interval);
+	println!("Learn daemon started. {} URLs, {} feeds, every {}s. Ctrl+C to stop.", urls.len(), feeds.len(), interval);
 	loop {
 		for u in &urls {
 			match modules::web::fetch_text(&settings, u).await {
-				Ok(text) => {
-					let _ = agent.summarize_and_learn(u, &text).await;
-					println!("Learned from {}", u);
-				}
+				Ok(text) => { let _ = agent.summarize_and_learn(u, &text).await; println!("Learned from {}", u); }
 				Err(e) => eprintln!("Fetch failed {}: {}", u, e),
+			}
+		}
+		#[cfg(feature = "feeds")]
+		for f in &feeds {
+			match modules::feeds::fetch_feed_text(f).await {
+				Ok(items) => {
+					for item in items.into_iter().take(5) {
+						let _ = agent.summarize_and_learn(f, &item).await;
+					}
+					println!("Learned from feed {}", f);
+				}
+				Err(e) => eprintln!("Feed failed {}: {}", f, e),
 			}
 		}
 		sleep(Duration::from_secs(interval)).await;

@@ -12,4 +12,6 @@ pub mod llm;
 #[cfg(all(feature = "stt-vosk", feature = "tts"))]
 pub mod voicechat;
 #[cfg(feature = "actions")]
-pub mod actions; 
+pub mod actions;
+#[cfg(feature = "feeds")]
+pub mod feeds; 
