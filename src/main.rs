@@ -34,6 +34,12 @@ enum Commands {
 	/// Voice mode with wake word (requires --features tts,stt-vosk)
 	#[cfg(all(feature = "stt-vosk", feature = "tts"))]
 	Voice,
+	/// Fetch a URL, summarize, and learn (requires --features web)
+	#[cfg(feature = "web")]
+	Browse { url: String },
+	/// Periodically learn from configured URLs (requires --features web)
+	#[cfg(feature = "web")]
+	Learn,
 }
 
 #[tokio::main]
@@ -61,6 +67,10 @@ async fn main() -> Result<()> {
 		}
 		#[cfg(all(feature = "stt-vosk", feature = "tts"))]
 		Commands::Voice => run_voice(settings).await?,
+		#[cfg(feature = "web")]
+		Commands::Browse { url } => run_browse(settings, &url).await?,
+		#[cfg(feature = "web")]
+		Commands::Learn => run_learn_daemon(settings).await?,
 	}
 
 	Ok(())
@@ -103,5 +113,38 @@ async fn run_voice(settings: settings::Settings) -> Result<()> {
 			// small cooldown to avoid re-triggering immediately
 			tokio::time::sleep(Duration::from_millis(800)).await;
 		}
+	}
+}
+
+#[cfg(feature = "web")]
+async fn run_browse(settings: settings::Settings, url: &str) -> Result<()> {
+	let mut agent = agent::Agent::new(settings.clone())?;
+	let text = modules::web::fetch_text(&settings, url).await?;
+	let summary = agent.summarize_and_learn(url, &text).await?;
+	println!("Learned from {}:\n{}", url, summary);
+	Ok(())
+}
+
+#[cfg(feature = "web")]
+async fn run_learn_daemon(settings: settings::Settings) -> Result<()> {
+	use tokio::time::{sleep, Duration};
+	let mut agent = agent::Agent::new(settings.clone())?;
+	let urls = match &settings.learn_urls { Some(v) if !v.is_empty() => v.clone(), _ => {
+		println!("No learn_urls configured in config.yaml");
+		return Ok(());
+	}};
+	let interval = settings.learn_interval_secs.unwrap_or(3600);
+	println!("Learn daemon started. {} URLs, every {}s. Ctrl+C to stop.", urls.len(), interval);
+	loop {
+		for u in &urls {
+			match modules::web::fetch_text(&settings, u).await {
+				Ok(text) => {
+					let _ = agent.summarize_and_learn(u, &text).await;
+					println!("Learned from {}", u);
+				}
+				Err(e) => eprintln!("Fetch failed {}: {}", u, e),
+			}
+		}
+		sleep(Duration::from_secs(interval)).await;
 	}
 } 
