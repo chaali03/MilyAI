@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
+  <metadata>
+    <id>milyai</id>
+    <version>0.1.0</version>
+    <title>MilyAI</title>
+    <authors>MilyAI Team</authors>
+    <owners>MilyAI Team</owners>
+    <license type="expression">MIT</license>
+    <projectUrl>https://example.com/milyai</projectUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>Modular AI assistant CLI written in Rust.</description>
+    <tags>ai assistant rust voice camera</tags>
+  </metadata>
+  <files>
+    <file src="tools\**" target="tools" />
+  </files>
+</package> 
