@@ -9,7 +9,7 @@ repository = "https://example.com/milyai"
 
 [features]
 # Default build is minimal and does not pull heavy media deps
-# Enable selectively: --features "tts stt-vosk camera voice web llm-openai robots llm-ollama actions feeds"
+# Enable selectively: --features "tts stt-vosk camera voice web llm-openai robots llm-ollama actions feeds llm-llama"
 default = []
 
 tts = ["dep:tts"]
@@ -20,6 +20,7 @@ web = ["dep:scraper", "dep:url"]
 llm-openai = ["dep:async-openai"]
 robots = ["dep:robotstxt"]
 llm-ollama = []
+llm-llama = ["dep:llama-rs"]
 actions = ["dep:webbrowser"]
 feeds = ["dep:rss"]
 
@@ -35,6 +36,7 @@ tokio = { version = "1", features = ["rt-multi-thread", "macros", "fs", "time", 
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
 tracing-appender = "0.2"
+num_cpus = "1"
 
 # Optional deps
 tts = { version = "0.26", optional = true }
@@ -49,6 +51,7 @@ async-openai = { version = "0.23", optional = true }
 robotstxt = { version = "0.6", optional = true }
 webbrowser = { version = "0.8", optional = true }
 rss = { version = "2", optional = true }
+llama-rs = { version = "0.4", optional = true }
 
 directories = "5"
 parking_lot = "0.12"

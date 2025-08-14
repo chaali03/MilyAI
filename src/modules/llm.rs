@@ -8,27 +8,41 @@ pub enum LlmProvider {
 	Endpoint,
 	#[cfg(feature = "llm-openai")]	OpenAi,
 	#[cfg(feature = "llm-ollama")]	Ollama,
+	#[cfg(feature = "llm-llama")]	LlamaRs,
 	Offline,
 }
 
 pub struct LlmClient {
 	settings: Settings,
 	provider: LlmProvider,
+	#[cfg(feature = "llm-llama")]
+	llama: Option<llama_rs::LLama>,
 }
 
 impl LlmClient {
 	pub fn new(settings: Settings) -> Self {
-		let provider = {
-			#[allow(unused_mut)]
-			let mut p = LlmProvider::Offline;
-			#[cfg(feature = "llm-openai")]
-			if settings.openai_api_key.is_some() { p = LlmProvider::OpenAi; }
-			#[cfg(feature = "llm-ollama")]
-			if settings.ollama_url.is_some() { p = LlmProvider::Ollama; }
-			if settings.llm_endpoint.is_some() { p = LlmProvider::Endpoint; }
-			p
-		};
-		Self { settings, provider }
+		let mut provider = LlmProvider::Offline;
+		#[cfg(feature = "llm-openai")]
+		if settings.openai_api_key.is_some() { provider = LlmProvider::OpenAi; }
+		#[cfg(feature = "llm-ollama")]
+		if settings.ollama_url.is_some() { provider = LlmProvider::Ollama; }
+		if settings.llm_endpoint.is_some() { provider = LlmProvider::Endpoint; }
+		#[cfg(feature = "llm-llama")]
+		if settings.llama_model_path.is_some() { provider = LlmProvider::LlamaRs; }
+
+		#[cfg(feature = "llm-llama")]
+		let llama = if matches!(provider, LlmProvider::LlamaRs) {
+			use std::path::Path;
+			use llama_rs::{Model, ModelParameters, Vocabulary, LLama};
+			let path = settings.llama_model_path.as_ref().unwrap();
+			let n_threads = settings.llama_n_threads.unwrap_or_else(|| num_cpus::get());
+			let params = ModelParameters { prefer_mmap: true, ..Default::default() };
+			let model = Model::load_from_file(Path::new(path), params).ok();
+			let llama = model.and_then(|m| LLama::new(m, Vocabulary::from_tokenizer_json("".into()), n_threads).ok());
+			llama
+		} else { None };
+
+		Self { settings, provider, #[cfg(feature = "llm-llama")] llama }
 	}
 
 	pub async fn generate(&self, prompt: &str) -> Result<String> {
@@ -38,7 +52,9 @@ impl LlmClient {
 			LlmProvider::OpenAi => self.generate_via_openai(prompt).await,
 			#[cfg(feature = "llm-ollama")]
 			LlmProvider::Ollama => self.generate_via_ollama(prompt).await,
-			LlmProvider::Offline => Ok("[offline] Connect a local LLM (Ollama) or set llm_endpoint".to_string()),
+			#[cfg(feature = "llm-llama")]
+			LlmProvider::LlamaRs => self.generate_via_llama(prompt).await,
+			LlmProvider::Offline => Ok("[offline] Connect a local LLM or set llm_endpoint".to_string()),
 		}
 	}
 
@@ -92,5 +108,25 @@ impl LlmClient {
 		if !resp.status().is_success() { return Err(anyhow!("Ollama request failed: {}", resp.status())); }
 		let data: Resp = resp.json().await?;
 		Ok(data.response)
+	}
+
+	#[cfg(feature = "llm-llama")]
+	async fn generate_via_llama(&self, prompt: &str) -> Result<String> {
+		use llama_rs::{InferenceParameters, InferenceSession, InferenceFeedback};
+		let llama = self.llama.as_ref().ok_or_else(|| anyhow!("LLaMA model not initialized"))?;
+		let mut session = InferenceSession::default();
+		let mut output = String::new();
+		let params = InferenceParameters { 
+			temperature: self.settings.temperature.unwrap_or(0.6),
+			..Default::default()
+		};
+		llama.inference_with_prompt(
+			&mut session,
+			&params,
+			format!("{}", prompt),
+			None,
+			|t| { output.push_str(t); InferenceFeedback::Continue },
+		)?;
+		Ok(output)
 	}
 } 

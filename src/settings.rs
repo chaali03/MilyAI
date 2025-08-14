@@ -35,6 +35,10 @@ pub struct Settings {
 	pub ollama_url: Option<String>,
 	#[cfg(feature = "llm-ollama")]
 	pub ollama_model: Option<String>,
+	#[cfg(feature = "llm-llama")]
+	pub llama_model_path: Option<PathBuf>,
+	#[cfg(feature = "llm-llama")]
+	pub llama_n_threads: Option<usize>,
 	#[cfg(feature = "actions")]
 	pub allow_dirs: Option<Vec<PathBuf>>,
 	#[cfg(feature = "actions")]
@@ -94,6 +98,10 @@ pub fn load(path: Option<&str>) -> Result<Settings> {
 	if let Ok(v) = env::var("MILYAI_OLLAMA_URL") { s.ollama_url = Some(v); }
 	#[cfg(feature = "llm-ollama")]
 	if let Ok(v) = env::var("MILYAI_OLLAMA_MODEL") { s.ollama_model = Some(v); }
+	#[cfg(feature = "llm-llama")]
+	if let Ok(v) = env::var("MILYAI_LLAMA_MODEL_PATH") { s.llama_model_path = Some(v.into()); }
+	#[cfg(feature = "llm-llama")]
+	if let Ok(v) = env::var("MILYAI_LLAMA_N_THREADS") { s.llama_n_threads = v.parse().ok(); }
 	#[cfg(feature = "actions")]
 	if let Ok(v) = env::var("MILYAI_ALLOW_DIRS") { s.allow_dirs = Some(v.split(';').map(|s| s.trim().into()).collect()); }
 	#[cfg(feature = "actions")]
@@ -145,6 +153,10 @@ fn merge(mut base: Settings, other: Settings) -> Settings {
 	if other.ollama_url.is_some() { base.ollama_url = other.ollama_url; }
 	#[cfg(feature = "llm-ollama")]
 	if other.ollama_model.is_some() { base.ollama_model = other.ollama_model; }
+	#[cfg(feature = "llm-llama")]
+	if other.llama_model_path.is_some() { base.llama_model_path = other.llama_model_path; }
+	#[cfg(feature = "llm-llama")]
+	if other.llama_n_threads.is_some() { base.llama_n_threads = other.llama_n_threads; }
 	#[cfg(feature = "actions")]
 	if other.allow_dirs.is_some() { base.allow_dirs = other.allow_dirs; }
 	#[cfg(feature = "actions")]
