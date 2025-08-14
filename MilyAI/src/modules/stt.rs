@@ -6,6 +6,10 @@ use std::sync::{Arc, Mutex};
 use vosk::{Model, Recognizer};
 
 pub fn transcribe_once(model_path: Option<&std::path::Path>) -> Result<String> {
+	transcribe_for_secs(model_path, 4)
+}
+
+pub fn transcribe_for_secs(model_path: Option<&std::path::Path>, seconds: u64) -> Result<String> {
 	let model_path = model_path.ok_or_else(|| anyhow!("STT model path not set in config"))?;
 	if !Path::new(model_path).exists() { return Err(anyhow!("Model not found: {:?}", model_path)); }
 	let model = Model::new(model_path.to_str().unwrap())?;
@@ -39,7 +43,7 @@ pub fn transcribe_once(model_path: Option<&std::path::Path>) -> Result<String> {
 		_ => return Err(anyhow!("Unsupported sample format")),
 	};
 	stream.play()?;
-	std::thread::sleep(std::time::Duration::from_secs(4));
+	std::thread::sleep(std::time::Duration::from_secs(seconds));
 	drop(stream);
 	let final_res = recognizer.final_result();
 	let mut s = transcript.lock().unwrap().clone();
