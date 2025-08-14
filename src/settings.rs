@@ -28,6 +28,10 @@ pub struct Settings {
 	pub openai_api_key: Option<String>,
 	#[cfg(feature = "llm-openai")]
 	pub openai_model: Option<String>,
+	#[cfg(feature = "llm-ollama")]
+	pub ollama_url: Option<String>,
+	#[cfg(feature = "llm-ollama")]
+	pub ollama_model: Option<String>,
 }
 
 pub fn load(path: Option<&str>) -> Result<Settings> {
@@ -64,6 +68,10 @@ pub fn load(path: Option<&str>) -> Result<Settings> {
 	if let Ok(v) = env::var("OPENAI_API_KEY") { s.openai_api_key = Some(v); }
 	#[cfg(feature = "llm-openai")]
 	if let Ok(v) = env::var("MILYAI_OPENAI_MODEL") { s.openai_model = Some(v); }
+	#[cfg(feature = "llm-ollama")]
+	if let Ok(v) = env::var("MILYAI_OLLAMA_URL") { s.ollama_url = Some(v); }
+	#[cfg(feature = "llm-ollama")]
+	if let Ok(v) = env::var("MILYAI_OLLAMA_MODEL") { s.ollama_model = Some(v); }
 	Ok(s)
 }
 
@@ -91,5 +99,9 @@ fn merge(mut base: Settings, other: Settings) -> Settings {
 	if other.openai_api_key.is_some() { base.openai_api_key = other.openai_api_key; }
 	#[cfg(feature = "llm-openai")]
 	if other.openai_model.is_some() { base.openai_model = other.openai_model; }
+	#[cfg(feature = "llm-ollama")]
+	if other.ollama_url.is_some() { base.ollama_url = other.ollama_url; }
+	#[cfg(feature = "llm-ollama")]
+	if other.ollama_model.is_some() { base.ollama_model = other.ollama_model; }
 	base
 } 

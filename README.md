@@ -1,6 +1,24 @@
 # MilyAI
 
-Modular AI assistant CLI in Rust. Text REPL by default, with optional TTS, STT, camera, voice wake mode, and web learning.
+Local-first AI assistant (Rust). Optional voice, web learning, and local LLM.
+
+## Local LLM (no API key)
+- Install Ollama: `https://ollama.com/download`
+- Pull a model (examples):
+  - `ollama pull llama3.1:8b`
+  - `ollama pull gemma2:9b`
+- Config `%APPDATA%/milyai/config.yaml`:
+```yaml
+ollama_url: "http://127.0.0.1:11434"
+ollama_model: "llama3.1:8b"
+```
+- Build and run:
+```bash
+cargo build --features "llm-ollama"
+cargo run --features "llm-ollama" -- run
+```
+
+Tip: You can also use a custom `llm_endpoint` if you have your own local server.
 
 ## Build
 

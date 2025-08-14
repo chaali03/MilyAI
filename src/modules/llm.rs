@@ -5,8 +5,10 @@ use crate::settings::Settings;
 
 #[derive(Debug, Clone)]
 pub enum LlmProvider {
-	Endpoint, // generic POST {prompt}
+	Endpoint,
 	#[cfg(feature = "llm-openai")]	OpenAi,
+	#[cfg(feature = "llm-ollama")]	Ollama,
+	Offline,
 }
 
 pub struct LlmClient {
@@ -16,12 +18,16 @@ pub struct LlmClient {
 
 impl LlmClient {
 	pub fn new(settings: Settings) -> Self {
-		let provider = if cfg!(feature = "llm-openai") && settings.openai_api_key.is_some() { 
+		let provider = {
+			#[allow(unused_mut)]
+			let mut p = LlmProvider::Offline;
 			#[cfg(feature = "llm-openai")]
-			{ LlmProvider::OpenAi }
-			#[cfg(not(feature = "llm-openai"))]
-			{ LlmProvider::Endpoint }
-		} else { LlmProvider::Endpoint };
+			if settings.openai_api_key.is_some() { p = LlmProvider::OpenAi; }
+			#[cfg(feature = "llm-ollama")]
+			if settings.ollama_url.is_some() { p = LlmProvider::Ollama; }
+			if settings.llm_endpoint.is_some() { p = LlmProvider::Endpoint; }
+			p
+		};
 		Self { settings, provider }
 	}
 
@@ -30,6 +36,9 @@ impl LlmClient {
 			LlmProvider::Endpoint => self.generate_via_endpoint(prompt).await,
 			#[cfg(feature = "llm-openai")]
 			LlmProvider::OpenAi => self.generate_via_openai(prompt).await,
+			#[cfg(feature = "llm-ollama")]
+			LlmProvider::Ollama => self.generate_via_ollama(prompt).await,
+			LlmProvider::Offline => Ok("[offline] Connect a local LLM (Ollama) or set llm_endpoint".to_string()),
 		}
 	}
 
@@ -64,5 +73,21 @@ impl LlmClient {
 		let choice = resp.choices.first().ok_or_else(|| anyhow!("no choices"))?;
 		let content = choice.message.content.clone().unwrap_or_default();
 		Ok(content)
+	}
+
+	#[cfg(feature = "llm-ollama")]
+	async fn generate_via_ollama(&self, prompt: &str) -> Result<String> {
+		#[derive(Serialize)]
+		struct Req<'a> { model: &'a str, prompt: &'a str, stream: bool }
+		#[derive(Deserialize)]
+		struct Resp { response: String }
+		let base = self.settings.ollama_url.clone().unwrap_or_else(|| "http://127.0.0.1:11434".to_string());
+		let model = self.settings.ollama_model.clone().unwrap_or_else(|| "llama3.1:8b".to_string());
+		let url = format!("{}/api/generate", base);
+		let client = reqwest::Client::new();
+		let resp = client.post(&url).json(&Req { model: &model, prompt, stream: false }).send().await?;
+		if !resp.status().is_success() { return Err(anyhow!("Ollama request failed: {}", resp.status())); }
+		let data: Resp = resp.json().await?;
+		Ok(data.response)
 	}
 } 
