@@ -5,6 +5,8 @@ use rand::Rng;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
+use crate::modules::llm::LlmClient;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AgentProfile {
 	pub name: String,
@@ -16,6 +18,7 @@ pub struct Agent {
 	settings: Settings,
 	memory: Arc<MemoryStore>,
 	profile: AgentProfile,
+	llm: LlmClient,
 }
 
 impl Agent {
@@ -26,15 +29,31 @@ impl Agent {
 			curiosity: settings.curiosity.unwrap_or(0.6),
 			persona: settings.persona.clone().unwrap_or_else(|| "Ramah, ingin tahu, membantu".to_string()),
 		};
-		Ok(Self { settings, memory, profile })
+		let llm = LlmClient::new(settings.clone());
+		Ok(Self { settings, memory, profile, llm })
 	}
 
 	pub async fn respond(&mut self, user_input: &str) -> Result<String> {
 		let context = self.memory.recall_recent(8)?;
 		let prompt = self.build_prompt(user_input, &context)?;
-		let reply = self.call_llm(&prompt).await?;
+		let reply = self.llm.generate(&prompt).await.unwrap_or_else(|_| "[offline] LLM unavailable".to_string());
 		self.memory.append_interaction(user_input, &reply)?;
 		Ok(reply)
+	}
+
+	#[cfg(feature = "web")]
+	pub async fn summarize_and_learn(&mut self, source: &str, text: &str) -> Result<String> {
+		let instruction = format!(
+			"Ringkas konten berikut dalam 5-8 poin (bahasa Indonesia), fokuskan pada fakta inti dan insight. Sumber: {src}\n\n{body}",
+			src = source,
+			body = text,
+		);
+		let context = self.memory.recall_recent(4)?;
+		let prompt = format!("<SYSTEM>Anda adalah {name} yang ingin tahu dan sedang belajar dari web.</SYSTEM>\n<CONTEXT>\n{ctx}\n</CONTEXT>\n<USER>\n{inst}\n</USER>", name = self.profile.name, ctx = context, inst = instruction);
+		let summary = self.llm.generate(&prompt).await.unwrap_or_else(|_| "[offline] summary unavailable".to_string());
+		let note_user = format!("LEARN FROM: {src}", src = source);
+		self.memory.append_interaction(&note_user, &summary)?;
+		Ok(summary)
 	}
 
 	fn build_prompt(&self, user_input: &str, context: &str) -> Result<String> {
@@ -52,27 +71,5 @@ impl Agent {
 		);
 		let _ = seed; // reserved for stochastic settings later
 		Ok(prompt)
-	}
-
-	async fn call_llm(&self, prompt: &str) -> Result<String> {
-		match &self.settings.llm_endpoint {
-			Some(url) => {
-				let client = reqwest::Client::new();
-				#[derive(Serialize)]
-				struct Req<'a> { prompt: &'a str }
-				#[derive(Deserialize)]
-				struct Resp { text: String }
-				let resp = client.post(url).json(&Req { prompt }).send().await?;
-				if !resp.status().is_success() {
-					return Err(anyhow!("LLM request failed: {}", resp.status()));
-				}
-				let data: Resp = resp.json().await?;
-				Ok(data.text)
-			}
-			None => {
-				// Placeholder offline reply so the app runs
-				Ok("[Mode offline] Saya mendengar Anda. Sambungkan LLM dengan --llm-endpoint di config untuk jawaban cerdas.".to_string())
-			}
-		}
 	}
 } 
