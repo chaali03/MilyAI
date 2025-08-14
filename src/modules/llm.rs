@@ -61,11 +61,13 @@ impl LlmClient {
 		use async_openai::Client;
 		let api_key = self.settings.openai_api_key.clone().ok_or_else(|| anyhow!("OPENAI_API_KEY not set"))?;
 		let model = self.settings.openai_model.clone().unwrap_or_else(|| "gpt-4o-mini".to_string());
+		let temperature = self.settings.temperature.unwrap_or(0.6);
 		let client = Client::with_api_key(api_key);
 		let req = CreateChatCompletionRequestArgs::default()
 			.model(model)
+			.temperature(temperature)
 			.messages([
-				ChatCompletionRequestMessageArgs::default().role(Role::System).content("You are Mily, a helpful, curious assistant. Respond briefly in Indonesian.").build()?,
+				ChatCompletionRequestMessageArgs::default().role(Role::System).content("You are Mily, a warm, natural, concise Indonesian conversationalist. Match the user's tone (friendly, caring). Prefer 1-3 sentences unless asked for detail.").build()?,
 				ChatCompletionRequestMessageArgs::default().role(Role::User).content(prompt).build()?,
 			])
 			.build()?;
@@ -78,14 +80,15 @@ impl LlmClient {
 	#[cfg(feature = "llm-ollama")]
 	async fn generate_via_ollama(&self, prompt: &str) -> Result<String> {
 		#[derive(Serialize)]
-		struct Req<'a> { model: &'a str, prompt: &'a str, stream: bool }
+		struct Req<'a> { model: &'a str, prompt: &'a str, stream: bool, temperature: f32 }
 		#[derive(Deserialize)]
 		struct Resp { response: String }
 		let base = self.settings.ollama_url.clone().unwrap_or_else(|| "http://127.0.0.1:11434".to_string());
 		let model = self.settings.ollama_model.clone().unwrap_or_else(|| "llama3.1:8b".to_string());
 		let url = format!("{}/api/generate", base);
+		let temperature = self.settings.temperature.unwrap_or(0.6);
 		let client = reqwest::Client::new();
-		let resp = client.post(&url).json(&Req { model: &model, prompt, stream: false }).send().await?;
+		let resp = client.post(&url).json(&Req { model: &model, prompt, stream: false, temperature }).send().await?;
 		if !resp.status().is_success() { return Err(anyhow!("Ollama request failed: {}", resp.status())); }
 		let data: Resp = resp.json().await?;
 		Ok(data.response)

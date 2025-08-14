@@ -60,7 +60,7 @@ async fn main() -> Result<()> {
 	match cli.command.unwrap_or(Commands::Run) {
 		Commands::Run => run_repl(settings).await?,
 		#[cfg(feature = "tts")]
-		Commands::Say { text } => modules::tts::speak(&text)?,
+		Commands::Say { text } => modules::tts::speak(&settings, &text)?,
 		#[cfg(feature = "stt-vosk")]
 		Commands::Listen => {
 			let transcript = modules::stt::transcribe_once(settings.stt_model_path.as_deref())?;
@@ -88,6 +88,7 @@ async fn main() -> Result<()> {
 
 async fn run_repl(settings: settings::Settings) -> Result<()> {
 	use std::io::{self, Write};
+	let speak_settings = settings.clone();
 	let mut agent = agent::Agent::new(settings)?;
 	println!("MilyAI ready. Type 'exit' to quit.");
 	loop {
@@ -103,7 +104,7 @@ async fn run_repl(settings: settings::Settings) -> Result<()> {
 		println!("{}", response);
 		#[cfg(feature = "tts")]
 		{
-			let _ = modules::tts::speak(&response);
+			let _ = modules::tts::speak(&speak_settings, &response);
 		}
 	}
 	Ok(())
@@ -119,7 +120,7 @@ async fn run_voice(settings: settings::Settings) -> Result<()> {
 			if query.trim().is_empty() { continue; }
 			let reply = agent.respond(&query).await?;
 			println!("You: {}\nMily: {}", query, reply);
-			let _ = modules::tts::speak(&reply);
+			let _ = modules::tts::speak(&settings, &reply);
 			// small cooldown to avoid re-triggering immediately
 			tokio::time::sleep(Duration::from_millis(800)).await;
 		}

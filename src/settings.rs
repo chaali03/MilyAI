@@ -38,6 +38,18 @@ pub struct Settings {
 	pub allow_apps: Option<Vec<String>>,
 	#[cfg(feature = "actions")]
 	pub actions_auto_confirm: Option<bool>,
+	// Conversation tuning
+	pub temperature: Option<f32>,
+	pub response_max_sentences: Option<u8>,
+	pub speaking_style: Option<String>,
+	#[cfg(feature = "tts")]
+	pub tts_voice: Option<String>,
+	#[cfg(feature = "tts")]
+	pub tts_rate: Option<f32>,
+	#[cfg(feature = "tts")]
+	pub tts_pitch: Option<f32>,
+	#[cfg(feature = "tts")]
+	pub tts_volume: Option<f32>,
 }
 
 pub fn load(path: Option<&str>) -> Result<Settings> {
@@ -84,6 +96,17 @@ pub fn load(path: Option<&str>) -> Result<Settings> {
 	if let Ok(v) = env::var("MILYAI_ALLOW_APPS") { s.allow_apps = Some(v.split(',').map(|s| s.trim().to_string()).collect()); }
 	#[cfg(feature = "actions")]
 	if let Ok(v) = env::var("MILYAI_ACTIONS_AUTO_CONFIRM") { s.actions_auto_confirm = Some(v == "1" || v.to_lowercase() == "true"); }
+	if let Ok(v) = env::var("MILYAI_TEMPERATURE") { s.temperature = v.parse().ok(); }
+	if let Ok(v) = env::var("MILYAI_RESPONSE_MAX_SENTENCES") { s.response_max_sentences = v.parse().ok(); }
+	if let Ok(v) = env::var("MILYAI_SPEAKING_STYLE") { s.speaking_style = Some(v); }
+	#[cfg(feature = "tts")]
+	if let Ok(v) = env::var("MILYAI_TTS_VOICE") { s.tts_voice = Some(v); }
+	#[cfg(feature = "tts")]
+	if let Ok(v) = env::var("MILYAI_TTS_RATE") { s.tts_rate = v.parse().ok(); }
+	#[cfg(feature = "tts")]
+	if let Ok(v) = env::var("MILYAI_TTS_PITCH") { s.tts_pitch = v.parse().ok(); }
+	#[cfg(feature = "tts")]
+	if let Ok(v) = env::var("MILYAI_TTS_VOLUME") { s.tts_volume = v.parse().ok(); }
 	Ok(s)
 }
 
@@ -121,5 +144,16 @@ fn merge(mut base: Settings, other: Settings) -> Settings {
 	if other.allow_apps.is_some() { base.allow_apps = other.allow_apps; }
 	#[cfg(feature = "actions")]
 	if other.actions_auto_confirm.is_some() { base.actions_auto_confirm = other.actions_auto_confirm; }
+	if other.temperature.is_some() { base.temperature = other.temperature; }
+	if other.response_max_sentences.is_some() { base.response_max_sentences = other.response_max_sentences; }
+	if other.speaking_style.is_some() { base.speaking_style = other.speaking_style; }
+	#[cfg(feature = "tts")]
+	if other.tts_voice.is_some() { base.tts_voice = other.tts_voice; }
+	#[cfg(feature = "tts")]
+	if other.tts_rate.is_some() { base.tts_rate = other.tts_rate; }
+	#[cfg(feature = "tts")]
+	if other.tts_pitch.is_some() { base.tts_pitch = other.tts_pitch; }
+	#[cfg(feature = "tts")]
+	if other.tts_volume.is_some() { base.tts_volume = other.tts_volume; }
 	base
 } 

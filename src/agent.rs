@@ -58,10 +58,14 @@ impl Agent {
 
 	fn build_prompt(&self, user_input: &str, context: &str) -> Result<String> {
 		let mut seed: u64 = rand::thread_rng().gen();
+		let style = self.settings.speaking_style.clone().unwrap_or_else(|| "hangat, natural, sopan".to_string());
+		let max_sent = self.settings.response_max_sentences.unwrap_or(3);
 		let system = format!(
-			"Anda adalah {name}, asisten AI berbahasa Indonesia yang ingin tahu dan berkembang. Persona: {persona}. \nGunakan nada yang sopan, ringkas.\n",
+			"Anda adalah {name}, asisten AI berbahasa Indonesia yang ingin tahu dan berkembang. Persona: {persona}. Gaya bicara: {style}.\nJawab ringkas (maks {max_sent} kalimat) kecuali diminta detail.\n",
 			name = self.profile.name,
 			persona = self.profile.persona,
+			style = style,
+			max_sent = max_sent,
 		);
 		let prompt = format!(
 			"<SYSTEM>\n{system}\n<CONTEXT>\n{context}\n</CONTEXT>\n<USER>\n{user}\n</USER>\n",
