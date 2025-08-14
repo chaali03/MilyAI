@@ -32,6 +32,12 @@ pub struct Settings {
 	pub ollama_url: Option<String>,
 	#[cfg(feature = "llm-ollama")]
 	pub ollama_model: Option<String>,
+	#[cfg(feature = "actions")]
+	pub allow_dirs: Option<Vec<PathBuf>>,
+	#[cfg(feature = "actions")]
+	pub allow_apps: Option<Vec<String>>,
+	#[cfg(feature = "actions")]
+	pub actions_auto_confirm: Option<bool>,
 }
 
 pub fn load(path: Option<&str>) -> Result<Settings> {
@@ -72,6 +78,12 @@ pub fn load(path: Option<&str>) -> Result<Settings> {
 	if let Ok(v) = env::var("MILYAI_OLLAMA_URL") { s.ollama_url = Some(v); }
 	#[cfg(feature = "llm-ollama")]
 	if let Ok(v) = env::var("MILYAI_OLLAMA_MODEL") { s.ollama_model = Some(v); }
+	#[cfg(feature = "actions")]
+	if let Ok(v) = env::var("MILYAI_ALLOW_DIRS") { s.allow_dirs = Some(v.split(';').map(|s| s.trim().into()).collect()); }
+	#[cfg(feature = "actions")]
+	if let Ok(v) = env::var("MILYAI_ALLOW_APPS") { s.allow_apps = Some(v.split(',').map(|s| s.trim().to_string()).collect()); }
+	#[cfg(feature = "actions")]
+	if let Ok(v) = env::var("MILYAI_ACTIONS_AUTO_CONFIRM") { s.actions_auto_confirm = Some(v == "1" || v.to_lowercase() == "true"); }
 	Ok(s)
 }
 
@@ -103,5 +115,11 @@ fn merge(mut base: Settings, other: Settings) -> Settings {
 	if other.ollama_url.is_some() { base.ollama_url = other.ollama_url; }
 	#[cfg(feature = "llm-ollama")]
 	if other.ollama_model.is_some() { base.ollama_model = other.ollama_model; }
+	#[cfg(feature = "actions")]
+	if other.allow_dirs.is_some() { base.allow_dirs = other.allow_dirs; }
+	#[cfg(feature = "actions")]
+	if other.allow_apps.is_some() { base.allow_apps = other.allow_apps; }
+	#[cfg(feature = "actions")]
+	if other.actions_auto_confirm.is_some() { base.actions_auto_confirm = other.actions_auto_confirm; }
 	base
 } 

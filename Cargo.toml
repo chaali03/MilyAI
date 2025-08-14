@@ -9,7 +9,7 @@ repository = "https://example.com/milyai"
 
 [features]
 # Default build is minimal and does not pull heavy media deps
-# Enable selectively: --features "tts stt-vosk camera voice web llm-openai robots llm-ollama"
+# Enable selectively: --features "tts stt-vosk camera voice web llm-openai robots llm-ollama actions"
 default = []
 
 tts = ["dep:tts"]
@@ -19,8 +19,8 @@ voice = ["tts", "stt-vosk"]
 web = ["dep:scraper", "dep:url"]
 llm-openai = ["dep:async-openai"]
 robots = ["dep:robotstxt"]
-# Ollama uses reqwest; no extra deps required but a feature flag for clarity
 llm-ollama = []
+actions = ["dep:webbrowser"]
 
 [dependencies]
 anyhow = "1"
@@ -45,6 +45,7 @@ scraper = { version = "0.18", optional = true }
 url = { version = "2.5", optional = true }
 async-openai = { version = "0.23", optional = true }
 robotstxt = { version = "0.6", optional = true }
+webbrowser = { version = "0.8", optional = true }
 
 directories = "5"
 parking_lot = "0.12"
@@ -56,4 +57,4 @@ assert_cmd = "2"
 predicates = "3"
 
 [package.metadata.docs]
-homepage = "https://example.com/milyai" 
+homepage = "https://example.com/milyai"} 

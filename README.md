@@ -1,6 +1,26 @@
 # MilyAI
 
-Local-first AI assistant (Rust). Optional voice, web learning, and local LLM.
+Local-first AI assistant (Rust). Voice, web learning, local LLM, and optional safe actions.
+
+## Hands-free voice
+- Wake word: `milyai voice` (say “Milly”)
+- Continuous talk: `milyai voicechat` (auto stop on silence)
+
+## Actions (permissioned)
+Enable with `--features actions`. Configure allowlists in `%APPDATA%/milyai/config.yaml`:
+```yaml
+allow_domains: ["rust-lang.org", "github.com"]
+allow_dirs:
+  - "C:/Users/owner/Documents"
+allow_apps: ["notepad.exe", "calc.exe"]
+```
+Examples:
+```bash
+milyai act open_url https://www.rust-lang.org/
+milyai act launch notepad.exe
+milyai act read C:/Users/owner/Documents/notes.txt
+milyai act write C:/Users/owner/Documents/todo.txt "Buy milk"
+```
 
 ## Voice conversation
 - Wake word: `milyai voice` (say “Milly”)

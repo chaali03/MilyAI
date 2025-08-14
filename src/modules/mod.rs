@@ -10,4 +10,6 @@ pub mod voice;
 pub mod web;
 pub mod llm;
 #[cfg(all(feature = "stt-vosk", feature = "tts"))]
-pub mod voicechat; 
+pub mod voicechat;
+#[cfg(feature = "actions")]
+pub mod actions; 

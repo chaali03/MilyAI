@@ -43,6 +43,9 @@ enum Commands {
 	/// Periodically learn from configured URLs (requires --features web)
 	#[cfg(feature = "web")]
 	Learn,
+	/// Execute a safe action (requires --features actions)
+	#[cfg(feature = "actions")]
+	Act { kind: String, arg1: Option<String>, arg2: Option<String> },
 }
 
 #[tokio::main]
@@ -76,6 +79,8 @@ async fn main() -> Result<()> {
 		Commands::Browse { url } => run_browse(settings, &url).await?,
 		#[cfg(feature = "web")]
 		Commands::Learn => run_learn_daemon(settings).await?,
+		#[cfg(feature = "actions")]
+		Commands::Act { kind, arg1, arg2 } => run_act(settings, &kind, arg1.as_deref(), arg2.as_deref())?,
 	}
 
 	Ok(())
@@ -152,4 +157,18 @@ async fn run_learn_daemon(settings: settings::Settings) -> Result<()> {
 		}
 		sleep(Duration::from_secs(interval)).await;
 	}
+}
+
+#[cfg(feature = "actions")]
+fn run_act(settings: settings::Settings, kind: &str, arg1: Option<&str>, arg2: Option<&str>) -> Result<()> {
+	use modules::actions::{self, Action};
+	let outcome = match kind.to_ascii_lowercase().as_str() {
+		"open_url" => actions::execute(&settings, Action::OpenUrl(arg1.ok_or_else(|| anyhow::anyhow!("url required"))?.to_string()))?,
+		"launch" => actions::execute(&settings, Action::LaunchApp { app: arg1.ok_or_else(|| anyhow::anyhow!("app required"))?.to_string(), args: arg2.map(|s| vec![s.to_string()]).unwrap_or_default() })?,
+		"read" => actions::execute(&settings, Action::ReadFile(arg1.ok_or_else(|| anyhow::anyhow!("path required"))?.into()))?,
+		"write" => actions::execute(&settings, Action::WriteFile { path: arg1.ok_or_else(|| anyhow::anyhow!("path required"))?.into(), content: arg2.unwrap_or("").to_string() })?,
+		_ => return Err(anyhow::anyhow!("unknown kind")),
+	};
+	println!("{}", outcome);
+	Ok(())
 } 
